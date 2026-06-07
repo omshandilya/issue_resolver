@@ -1,0 +1,6 @@
+{
+  "pr_title": "fix: address issue #3998",
+  "pr_body": "Problem: OpenRouter summary generation failed and offline fallback was used.\nApproach: generated artifacts locally from the current working tree diff.\nTesting done: repository diff captured and CLI flow completed.\nLinked issue: #3998\nOpenRouter error: 402 Client Error: Payment Required for url: https://openrouter.ai/api/v1/chat/completions",
+  "files_changed": [],
+  "offline_mode": true
+}

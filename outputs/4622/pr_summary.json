@@ -1,0 +1,10 @@
+{
+  "pr_title": "fix: prevent chmod on existing directories in SaveUploadedFile",
+  "pr_body": "This PR fixes the issue where `Context.SaveUploadedFile` attempts to call `os.Chmod` on the target directory, even if it already exists and is not owned by the process. The problem was introduced in v1.12.0 and causes issues when saving files directly into existing system directories like `/tmp`. The approach is to only apply `os.Chmod` when the directory is newly created. Testing was done by verifying that `SaveUploadedFile` no longer fails when saving files to `/tmp`. This PR is related to issue #4622.",
+  "files_changed": [
+    {
+      "file": "context.go",
+      "why": "modified to prevent chmod on existing directories"
+    }
+  ]
+}
