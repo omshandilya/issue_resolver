@@ -1,0 +1,18 @@
+{
+  "pr_title": "fix: improve command GoDoc comments",
+  "pr_body": "The current GoDoc comments for the ExecuteC command are unclear. This pull request improves the comments to describe its returned command and errors, clarifies that HelpTemplate is retained for compatibility and points users to SetHelpTemplate or HelpFunc/Help, and fixes nearby template comment grammar. Testing was done using the go test ./... command. This fixes issue #2319 and closes issue #2302.",
+  "files_changed": [
+    {
+      "file": "args.go",
+      "why": "Added NoDuplicateArgs function to report an error if there are any duplicate positional args"
+    },
+    {
+      "file": "args_test.go",
+      "why": "Added tests for NoDuplicateArgs function"
+    },
+    {
+      "file": "site/content/user_guide.md",
+      "why": "Updated user guide to include information about NoDuplicateArgs validator"
+    }
+  ]
+}

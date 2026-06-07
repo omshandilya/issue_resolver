@@ -20,24 +20,6 @@ def _repo_url(repo_slug: str) -> str:
     return f"https://github.com/{repo_slug}.git"
 
 
-def _upsert_env(key: str, value: str) -> None:
-    env_path = PROJECT_ROOT / ".env"
-    lines: list[str] = []
-    if env_path.exists():
-        lines = env_path.read_text(encoding="utf-8").splitlines()
-
-    prefix = f"{key}="
-    updated = False
-    for index, line in enumerate(lines):
-        if line.startswith(prefix):
-            lines[index] = f"{key}={value}"
-            updated = True
-            break
-    if not updated:
-        lines.append(f"{key}={value}")
-
-    env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
 
 def _repo_path(repo_slug: str) -> Path:
     return PROJECT_ROOT / APPROVED_REPOS[repo_slug]

@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import subprocess
 from pathlib import Path
+from typing import Any
 
 from config import MAX_TOKENS_PER_FILE
 
@@ -29,7 +30,8 @@ def _run_command(command, cwd):
         return exc
 
 
-def list_files(repo_path):
+def list_files(repo_path: str) -> dict[str, Any]:
+    """List source files in the repository (up to 20 paths returned)."""
     try:
         repo_dir = Path(repo_path)
         rg_command = ["rg", "--files", str(repo_dir)]
@@ -38,9 +40,9 @@ def list_files(repo_path):
             files = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
             return _result(
                 True,
-                files=files[:2],
+                files=files[:20],
                 total_files=len(files),
-                truncated=len(files) > 2,
+                truncated=len(files) > 20,
             )
 
         grep_command = ["grep", "-R", "-l", "", str(repo_dir)]
@@ -49,21 +51,22 @@ def list_files(repo_path):
             files = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
             return _result(
                 True,
-                files=files[:2],
+                files=files[:20],
                 total_files=len(files),
-                truncated=len(files) > 2,
+                truncated=len(files) > 20,
             )
 
         files = []
         for root, _, filenames in os.walk(repo_dir):
             for filename in filenames:
                 files.append(str(Path(root) / filename))
-        return _result(False, files=files[:2], total_files=len(files), truncated=len(files) > 2, error="rg and grep commands were unavailable or failed")
+        return _result(False, files=files[:20], total_files=len(files), truncated=len(files) > 20, error="rg and grep commands were unavailable or failed")
     except Exception as exc:
         return _result(False, error=str(exc))
 
 
-def read_file(repo_path, filepath):
+def read_file(repo_path: str, filepath: str) -> dict[str, Any]:
+    """Read a repository file, truncating to MAX_TOKENS_PER_FILE characters."""
     try:
         file_path = Path(repo_path) / filepath
         raw_content = file_path.read_text(encoding="utf-8")
@@ -83,7 +86,8 @@ def read_file(repo_path, filepath):
         return _result(False, error=str(exc))
 
 
-def search_code(repo_path, query):
+def search_code(repo_path: str, query: str) -> dict[str, Any]:
+    """Search the repository for a query string and return matching lines."""
     try:
         repo_dir = Path(repo_path)
         rg_command = ["rg", "-n", "--no-heading", query, str(repo_dir)]
@@ -113,7 +117,8 @@ def search_code(repo_path, query):
         return _result(False, error=str(exc))
 
 
-def get_git_log(repo_path, filepath):
+def get_git_log(repo_path: str, filepath: str) -> dict[str, Any]:
+    """Return a short git log for the given file path."""
     try:
         repo_dir = Path(repo_path)
         command = ["git", "log", "--oneline", "--", filepath]

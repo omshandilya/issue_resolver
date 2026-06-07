@@ -1,4 +1,4 @@
-"""Anthropic tool-use agent loop for go-issue-agent."""
+"""Groq-backed tool-use agent loop for go-issue-agent."""
 
 from __future__ import annotations
 
@@ -8,16 +8,21 @@ import re
 from pathlib import Path
 from typing import Any, Callable
 
+from git import Repo
 from openai import OpenAI
 
-from config import MAX_FILES_READ, MAX_TOKENS, MAX_TOKENS_PER_FILE, MAX_TOOL_ITERATIONS, MODEL, PROJECT_ROOT
-
+from config import (
+    GROQ_API_BASE,
+    MAX_FILES_READ,
+    MAX_TOKENS,
+    MAX_TOOL_ITERATIONS,
+    MODEL,
+    PROJECT_ROOT,
+)
 from tools.github_tools import fetch_issue, list_issues
 from tools.patch_tools import apply_diff, create_branch, generate_diff
 from tools.repo_tools import get_git_log, list_files, read_file, search_code
 
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SYSTEM_PROMPT_PATH = PROJECT_ROOT / "prompts" / "system.md"
 
 
@@ -180,41 +185,11 @@ def _content_to_text(content: Any) -> str:
     return "\n".join(parts).strip()
 
 
-def _message_text(message: Any) -> str:
-    content = getattr(message, "content", None)
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        return _content_to_text(content)
-    return ""
-
-
-def _to_message_content(content: Any) -> list[dict[str, Any]]:
-    blocks: list[dict[str, Any]] = []
-    for block in content or []:
-        if isinstance(block, dict):
-            blocks.append(block)
-            continue
-        block_type = getattr(block, "type", None)
-        if block_type == "text":
-            blocks.append({"type": "text", "text": getattr(block, "text", "")})
-        elif block_type == "tool_use":
-            blocks.append(
-                {
-                    "type": "tool_use",
-                    "id": getattr(block, "id", None),
-                    "name": getattr(block, "name", None),
-                    "input": getattr(block, "input", {}),
-                }
-            )
-    return blocks
-
-
 def _call_groq(messages: list[dict[str, Any]], system_prompt: str) -> dict[str, Any]:
     if not os.getenv("GROQ_API_KEY"):
         raise RuntimeError("GROQ_API_KEY is not configured")
 
-    client = OpenAI(api_key=os.getenv("GROQ_API_KEY"), base_url="https://api.groq.com/openai/v1")
+    client = OpenAI(api_key=os.getenv("GROQ_API_KEY"), base_url=GROQ_API_BASE)
     response = client.chat.completions.create(
         model=MODEL,
         max_tokens=MAX_TOKENS,
@@ -230,7 +205,9 @@ def _call_groq(messages: list[dict[str, Any]], system_prompt: str) -> dict[str, 
 
 
 def _invoke_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-    tool = TOOL_FUNCTIONS[name]
+    tool = TOOL_FUNCTIONS.get(name)
+    if tool is None:
+        return {"success": False, "error": f"Unknown tool: {name!r}"}
     return tool(**arguments)
 
 
@@ -343,7 +320,13 @@ def _tool_calls_modified_files(tool_calls: list[dict[str, Any]]) -> bool:
     )
 
 
-def run_agent(issue_number, owner="gin-gonic", repo="gin", repo_path="repos/gin"):
+def run_agent(
+    issue_number: str | int,
+    owner: str = "gin-gonic",
+    repo: str = "gin",
+    repo_path: str = "repos/gin",
+) -> dict[str, Any]:
+    """Run the full agent loop for the given GitHub issue and return artifacts."""
     tool_calls: list[dict[str, Any]] = []
     system_prompt = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
     last_text_response = ""
@@ -471,9 +454,8 @@ def run_agent(issue_number, owner="gin-gonic", repo="gin", repo_path="repos/gin"
                     if len(file_text.splitlines()) < 100 or "package gin" not in file_text:
                         print(f"Discarding garbage/truncated change to {fname}")
                         try:
-                            from git import Repo
-                            repo = Repo(Path(repo_path))
-                            repo.git.checkout("--", fname)
+                            git_repo = Repo(Path(repo_path))
+                            git_repo.git.checkout("--", fname)
                             call["result"]["success"] = False
                         except Exception as e:
                             print(f"Failed to revert {fname}: {e}")

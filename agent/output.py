@@ -10,11 +10,9 @@ from typing import Any
 from openai import OpenAI
 from git import GitCommandError, Repo
 
-from config import MAX_TOKENS, MODEL
+from config import GROQ_API_BASE, MAX_TOKENS, MODEL, PROJECT_ROOT
 from tools.patch_tools import generate_diff
 
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 
 
@@ -50,7 +48,7 @@ def _call_groq(prompt: str) -> str:
     if not os.getenv("GROQ_API_KEY"):
         raise RuntimeError("GROQ_API_KEY is not configured")
 
-    client = OpenAI(api_key=os.getenv("GROQ_API_KEY"), base_url="https://api.groq.com/openai/v1")
+    client = OpenAI(api_key=os.getenv("GROQ_API_KEY"), base_url=GROQ_API_BASE)
     response = client.chat.completions.create(
         model=MODEL,
         max_tokens=MAX_TOKENS,

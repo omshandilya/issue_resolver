@@ -3,21 +3,23 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from git import GitCommandError, Repo
 
 
-def _result(success: bool, **data):
-    payload = {"success": success}
+def _result(success: bool, **data: Any) -> dict[str, Any]:
+    payload: dict[str, Any] = {"success": success}
     payload.update(data)
     return payload
 
 
-def _open_repo(repo_path):
+def _open_repo(repo_path: str) -> Repo:
     return Repo(Path(repo_path))
 
 
-def apply_diff(repo_path, filepath, new_content):
+def apply_diff(repo_path: str, filepath: str, new_content: str) -> dict[str, Any]:
+    """Write *new_content* to *filepath* inside *repo_path* and return the resulting git diff."""
     try:
         repo = _open_repo(repo_path)
         file_path = Path(repo_path) / filepath
@@ -29,7 +31,8 @@ def apply_diff(repo_path, filepath, new_content):
         return _result(False, error=str(exc))
 
 
-def create_branch(repo_path, branch_name):
+def create_branch(repo_path: str, branch_name: str) -> dict[str, Any]:
+    """Create and check out a new git branch in *repo_path*."""
     try:
         repo = _open_repo(repo_path)
         branch = repo.create_head(branch_name)
@@ -41,15 +44,14 @@ def create_branch(repo_path, branch_name):
         return _result(False, error=str(exc))
 
 
-def generate_diff(repo_path):
+def generate_diff(repo_path: str) -> dict[str, Any]:
     """Return a unified diff for the current changes.
 
     Strategy:
-    1. Try ``git diff`` (unstaged working-tree changes).
-    2. If the working tree is clean (changes were committed), compare the
-       current branch against ``master`` with ``git diff master``.
-    3. If that is also empty (already on master / no commits ahead),
-       compare against ``HEAD~1`` as a last resort.
+    1. ``git diff`` — unstaged working-tree changes (normal agent flow).
+    2. ``git diff master`` — if the working tree is clean because the fix was
+       already committed ahead of master (e.g. on a re-run).
+    3. ``git diff HEAD~1`` — last resort when neither of the above yields output.
     """
     try:
         repo = _open_repo(repo_path)
