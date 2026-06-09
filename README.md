@@ -29,7 +29,7 @@ CLI → Agent Loop → Tools → Groq LLM → Output
    Open `.env` and fill in your API credentials:
    ```env
    GROQ_API_KEY=your_groq_api_key_here
-   GITHUB_TOKEN=your_github_token_here
+   GITHUB_TOKEN=your_github_token_here(OPTIONAL, without adding it will also work but with 60req/hr limit)
    ```
 
 ## Usage
